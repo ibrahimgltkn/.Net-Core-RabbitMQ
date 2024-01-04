@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using UdemyRabbitMQWeb.ExcelCreate.Hubs;
 using UdemyRabbitMQWeb.ExcelCreate.Models;
 
 namespace UdemyRabbitMQWeb.ExcelCreate.Controllers
@@ -12,11 +14,14 @@ namespace UdemyRabbitMQWeb.ExcelCreate.Controllers
     public class FilesController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public FilesController(AppDbContext context)
+
+        private readonly IHubContext<MyHub> _hubContext;
+
+        public FilesController(AppDbContext context, IHubContext<MyHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file, int fileId)
@@ -41,6 +46,10 @@ namespace UdemyRabbitMQWeb.ExcelCreate.Controllers
             userFile.FileStatus = FileStatus.Completed;
 
             await _context.SaveChangesAsync();
+
+            //signalr
+
+            await _hubContext.Clients.User(userFile.UserId).SendAsync("CompletedFile");
 
             return Ok();
         }
